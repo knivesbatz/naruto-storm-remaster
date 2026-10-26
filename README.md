@@ -16,7 +16,7 @@ Darker, cinematic grading with an adaptive filmic tone curve, super-bright jutsu
 
 ## Features
 
-All effects are original shader code in one file, [`NS_Remaster.fx`](src/reshade-shaders/Shaders/NarutoStorm/NS_Remaster.fx).
+All effects are original shader code in one file, [`NS_Remaster.fx`](reshade-shaders/Shaders/NS_Remaster.fx).
 
 | Effect | What it does |
 |---|---|
@@ -36,21 +36,17 @@ All effects are original shader code in one file, [`NS_Remaster.fx`](src/reshade
 
 ## Install
 
-1. Download ReShade from **https://reshade.me** (tested with 6.7.3). Leave `ReShade_Setup_x.y.z.exe` in your **Downloads** folder. You don't need to run it.
-2. Download `NarutoStormRemaster-<version>.zip` from [Releases](../../releases) and extract it anywhere.
-3. Close the game and double-click **`Install.bat`**.
-   - It finds the game through Steam. If that fails, run it again with a path: `Install.bat -GameDir "D:\SteamLibrary\steamapps\common\<game folder>"` (the folder containing `NSUNS1.exe`).
-   - It extracts ReShade's DLL from your downloaded setup file as `dxgi.dll`. If another mod already uses `dxgi.dll`, it installs as `d3d11.dll` instead. An existing ReShade install is reused.
-   - It copies the shader and presets into their own `NarutoStorm` subfolders and writes `ReShade.ini`, backing up any existing one. **No game files are modified**, and every change is recorded in `NarutoStormRemaster.install.txt`.
-4. Start the game. The **High** preset is active.
+This is a regular ReShade preset; there's no installer of its own.
 
-### Controls
+1. Download `NarutoStormRemaster-<version>.zip` from [Releases](../../releases). Extract it **into the game folder**, the one containing `NSUNS1.exe` (Steam → right-click the game → Manage → Browse local files). That adds `reshade-shaders\Shaders\NS_Remaster.fx` and the `NarutoStorm_*.ini` presets. No game files are replaced.
+2. Run the ReShade setup from **https://reshade.me** (tested with 6.7.3):
+   - Select `NSUNS1.exe` and choose **DirectX 10/11/12**.
+   - At **Select preset to install**, browse to `NarutoStorm_High.ini` in the game folder.
+   - On the effect packages page, **uncheck everything**: the preset only needs `NS_Remaster.fx`, which you already extracted.
+3. Start the game and press **Home** to open ReShade. If the tutorial shows, skip it.
+4. **One-time depth setting:** Home → **Add-ons** → **Generic Depth** → tick **Copy depth buffer before clear operations**. All tuning and testing was done with this on.
 
-| Key | Action |
-|---|---|
-| **End** | Effects on/off (instant original-look comparison) |
-| **Home** | ReShade menu: presets, every slider, debug views |
-| **Page Up / Page Down** | Previous / next preset |
+Already have ReShade on this game? Extract the zip, then pick `NarutoStorm_High.ini` from the preset dropdown at the top of the ReShade menu. Switch presets the same way.
 
 ## Presets
 
@@ -92,7 +88,7 @@ The HUD is drawn after the 3D scene, but ReShade only sees the final frame. Meas
 
 ## Depth sync fix ("ghost doubles")
 
-This game shows each image one frame after its depth buffer. Without correction, every depth effect trails moving characters, producing ghost outlines. The shader keeps the previous frame's depth (**Depth → Delay depth by one frame**, on by default), and `ReShade.ini` enables `DepthCopyBeforeClears`. The red edges in the debug view below sit exactly on the characters:
+This game shows each image one frame after its depth buffer. Without correction, every depth effect trails moving characters, producing ghost outlines. The shader keeps the previous frame's depth (**Depth → Delay depth by one frame**, on by default), together with ReShade's **Copy depth buffer before clear operations** (install step 4). The red edges in the debug view below sit exactly on the characters:
 
 ![Depth alignment](docs/screenshots/depth-alignment-debug.jpg)
 
@@ -109,16 +105,17 @@ This game shows each image one frame after its depth buffer. Without correction,
 
 | Problem | Fix |
 |---|---|
-| Nothing changes in game | Press **End** (effects may be toggled off). Check that `dxgi.dll` or `d3d11.dll` and `ReShade.ini` are next to `NSUNS1.exe`. |
+| Nothing changes in game | Check effects aren't toggled off (ReShade's effect toggle key, set under Home → Settings). Make sure ReShade was installed for `NSUNS1.exe` with DirectX 10/11/12, and that `NS_Remaster.fx` is in `reshade-shaders\Shaders`. |
 | "failed to compile" in the ReShade menu | Hover the red entry for the message and open an issue with it. Make sure ReShade is 5.0 or newer. |
 | Outlines/AO trail behind characters | **Home → NS_Remaster.fx → Depth → Delay depth by one frame** must be on. |
 | Too dark / too bright | **Colour grade → Exposure** (default −0.9) and **Adaptive exposure**. |
 | HUD looks affected | **Debug view → HUD mask** shows protected areas in magenta. Add an extra box in **HUD / Menus → Extra protected box**. |
-| Low FPS | Switch to Medium or Low with **Page Down**. |
+| Low FPS | Pick `NarutoStorm_Medium.ini` or `NarutoStorm_Low.ini` from the preset dropdown. |
 
 ## Uninstall
 
-Close the game and double-click **`Uninstall.bat`**. It removes exactly what the installer added (listed in `NarutoStormRemaster.install.txt`) and restores your previous `ReShade.ini`. It removes ReShade only if the installer added it, and it never touches your other shaders or presets.
+- **Remove the preset only:** delete `reshade-shaders\Shaders\NS_Remaster.fx` and the `NarutoStorm_*.ini` files from the game folder.
+- **Remove ReShade too:** run the ReShade setup again, pick the game, and choose **Uninstall**.
 
 ## Building / development
 
@@ -126,17 +123,13 @@ Close the game and double-click **`Uninstall.bat`**. It removes exactly what the
 python tools/check_presets.py
 ```
 ```bash
-powershell -ExecutionPolicy Bypass -File tools/test_install.ps1 -ReShadeSetup "$HOME/Downloads/ReShade_Setup_6.7.3.exe"
-```
-```bash
-powershell -ExecutionPolicy Bypass -File tools/build_release.ps1 -Version 1.0.0
+powershell -ExecutionPolicy Bypass -File tools/build_release.ps1 -Version 1.1.0
 ```
 
 - `check_presets.py` checks that every preset only uses techniques and settings that exist in the shader.
-- `test_install.ps1` runs a full install/uninstall round trip against a fake game folder (13 checks).
-- `build_release.ps1` writes `dist/NarutoStormRemaster-1.0.0.zip`. ReShade binaries are never included.
+- `build_release.ps1` writes `dist/NarutoStormRemaster-1.1.0.zip` with the same layout as this repo's root. ReShade binaries are never included.
 
-The shader only compiles inside ReShade. For live iteration, keep the game running, edit `NS_Remaster.fx` in the game's `reshade-shaders\Shaders\NarutoStorm` folder, and press **Reload** in the ReShade menu.
+The repo root mirrors a game folder. The shader only compiles inside ReShade, so for live iteration keep the game running, edit `reshade-shaders\Shaders\NS_Remaster.fx` in the game folder, and press **Reload** in the ReShade menu.
 
 ## License
 

@@ -1,22 +1,17 @@
 <#
-  Builds dist\NarutoStormRemaster-<version>.zip (no ReShade binaries are included).
-  Usage: powershell -ExecutionPolicy Bypass -File tools\build_release.ps1 -Version 1.0.0
+  Builds dist\NarutoStormRemaster-<version>.zip: a plain ReShade drop-in (presets + reshade-shaders), no ReShade binaries.
+  Usage: powershell -ExecutionPolicy Bypass -File tools\build_release.ps1 -Version 1.1.0
 #>
-param([string]$Version = '1.0.0')
+param([string]$Version = '1.1.0')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 
 & python -I (Join-Path $repo 'tools\check_presets.py')
 if ($LASTEXITCODE) { throw 'Preset check failed.' }
 
-$stage = Join-Path $repo "dist\NarutoStormRemaster-$Version"
-Remove-Item $stage -Recurse -Force -ErrorAction SilentlyContinue
-New-Item -ItemType Directory -Force -Path $stage | Out-Null
-foreach ($f in 'install.ps1', 'uninstall.ps1', 'Install.bat', 'Uninstall.bat', 'README.md', 'LICENSE') { Copy-Item (Join-Path $repo $f) $stage }
-Copy-Item (Join-Path $repo 'src') $stage -Recurse
-
-$zip = "$stage.zip"
+New-Item -ItemType Directory -Force -Path (Join-Path $repo 'dist') | Out-Null
+$zip = Join-Path $repo "dist\NarutoStormRemaster-$Version.zip"
 Remove-Item $zip -Force -ErrorAction SilentlyContinue
-Compress-Archive -Path "$stage\*" -DestinationPath $zip
-Remove-Item $stage -Recurse -Force
+$items = @(Get-ChildItem (Join-Path $repo 'NarutoStorm_*.ini')).FullName + @((Join-Path $repo 'reshade-shaders'), (Join-Path $repo 'README.md'), (Join-Path $repo 'LICENSE'))
+Compress-Archive -Path $items -DestinationPath $zip
 Write-Host "Built $zip ($([math]::Round((Get-Item $zip).Length / 1KB)) KB)"

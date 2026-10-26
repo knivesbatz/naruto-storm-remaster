@@ -8,9 +8,9 @@ import pathlib
 import re
 import sys
 
-ROOT = pathlib.Path(__file__).resolve().parents[1] / "src"
-FX = ROOT / "reshade-shaders" / "Shaders" / "NarutoStorm" / "NS_Remaster.fx"
-PRESETS = sorted((ROOT / "reshade-presets" / "NarutoStorm").glob("*.ini"))
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+FX = ROOT / "reshade-shaders" / "Shaders" / "NS_Remaster.fx"
+PRESETS = sorted(ROOT.glob("NarutoStorm_*.ini"))
 
 
 def main() -> int:
@@ -18,7 +18,7 @@ def main() -> int:
     techniques = set(re.findall(r"^technique\s+(\w+)", src, re.M))
     uniforms = set(re.findall(r"^uniform\s+\w+\s+(\w+)\s*<", src, re.M))
     errors = []
-    assert techniques and uniforms, "parser found nothing - shader layout changed?"
+    assert techniques and uniforms and PRESETS, "parser found nothing - layout changed?"
 
     for preset in PRESETS:
         section, keys, top = None, {}, {}
