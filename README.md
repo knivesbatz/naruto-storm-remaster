@@ -81,7 +81,7 @@ Per-effect GPU cost (High, final build): Begin 1.28 ms, Reflections 1.05 ms, Lig
 The HUD is drawn after the 3D scene, but ReShade only sees the final frame. Measurements from this game drove three layers of protection:
 
 1. **Depth-tagged HUD heads.** The fighter portraits are 3D heads drawn at linear depth < 0.001 (the nearest real scenery is > 0.03), so those pixels are restored exactly.
-2. **HUD boxes.** The battle HUD (both health blocks and both item wheels) and the free-roam HUD (portrait and button help) were measured in-game. A box activates only while its HUD is detected: battle mode is recognised by the opponent's portrait in the top-right. Inside a box only per-pixel grading applies. No bloom, sharpening, reflections, AO or flares are drawn there, and no bloom is generated from it.
+2. **HUD boxes.** The battle HUD (both health blocks and both item wheels) and the free-roam HUD (portrait, button help and minimap) were measured in-game. A box activates only while its HUD is detected: battle mode is recognised by the opponent's portrait in the top-right. Inside a box only per-pixel grading applies. No bloom, sharpening, reflections, AO or flares are drawn there, and no bloom is generated from it.
 3. **Menus and videos.** Full-screen menus and pre-rendered videos have no 3D depth, so they're shown untouched.
 
 ![HUD mask debug](docs/screenshots/hud-mask-debug.jpg)
@@ -123,11 +123,11 @@ This game shows each image one frame after its depth buffer. Without correction,
 python tools/check_presets.py
 ```
 ```bash
-powershell -ExecutionPolicy Bypass -File tools/build_release.ps1 -Version 1.1.0
+powershell -ExecutionPolicy Bypass -File tools/build_release.ps1 -Version 1.1.1
 ```
 
 - `check_presets.py` checks that every preset only uses techniques and settings that exist in the shader.
-- `build_release.ps1` writes `dist/NarutoStormRemaster-1.1.0.zip` with the same layout as this repo's root. ReShade binaries are never included.
+- `build_release.ps1` writes `dist/NarutoStormRemaster-1.1.1.zip` with the same layout as this repo's root. ReShade binaries are never included.
 
 The repo root mirrors a game folder. The shader only compiles inside ReShade, so for live iteration keep the game running, edit `reshade-shaders\Shaders\NS_Remaster.fx` in the game folder, and press **Reload** in the ReShade menu.
 

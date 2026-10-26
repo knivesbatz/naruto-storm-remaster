@@ -1,8 +1,8 @@
 <#
   Builds dist\NarutoStormRemaster-<version>.zip: a plain ReShade drop-in (presets + reshade-shaders), no ReShade binaries.
-  Usage: powershell -ExecutionPolicy Bypass -File tools\build_release.ps1 -Version 1.1.0
+  Usage: powershell -ExecutionPolicy Bypass -File tools\build_release.ps1 -Version 1.1.1
 #>
-param([string]$Version = '1.1.0')
+param([string]$Version = '1.1.1')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 

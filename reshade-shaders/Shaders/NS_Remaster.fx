@@ -66,14 +66,14 @@ uniform int ShaftSamples < ui_category = "Light shafts"; ui_type = "slider"; ui_
 uniform float ShaftThreshold < ui_category = "Light shafts"; ui_type = "slider"; ui_min = 0.3; ui_max = 0.95; ui_label = "Sky brightness threshold"; > = 0.72;
 uniform float3 ShaftTint < ui_category = "Light shafts"; ui_type = "color"; ui_label = "Tint"; > = float3(1.0, 0.92, 0.78);
 
-uniform float BloomIntensity < ui_category = "Bloom"; ui_type = "slider"; ui_min = 0.0; ui_max = 2.0; ui_label = "Bloom intensity"; > = 1.4;
+uniform float BloomIntensity < ui_category = "Bloom"; ui_type = "slider"; ui_min = 0.0; ui_max = 2.0; ui_label = "Bloom intensity"; > = 1.0;
 uniform float BloomThreshold < ui_category = "Bloom"; ui_type = "slider"; ui_min = 0.3; ui_max = 1.0; ui_label = "Threshold"; > = 0.56;
 uniform float BloomSoftness < ui_category = "Bloom"; ui_type = "slider"; ui_min = 0.05; ui_max = 0.5; ui_label = "Glow softness"; ui_tooltip = "Higher lets mid-bright areas glow gently (anime diffusion look)."; > = 0.25;
-uniform float FXGlow < ui_category = "Bloom"; ui_type = "slider"; ui_min = 0.0; ui_max = 6.0; ui_label = "Jutsu / FX glow"; ui_tooltip = "Extra glow for very bright, saturated colours: chakra, fire, lightning, Rasengan."; > = 3.5;
+uniform float FXGlow < ui_category = "Bloom"; ui_type = "slider"; ui_min = 0.0; ui_max = 6.0; ui_label = "Jutsu / FX glow"; ui_tooltip = "Extra glow for very bright, saturated colours: chakra, fire, lightning, Rasengan."; > = 2.5;
 uniform float BloomRadius < ui_category = "Bloom"; ui_type = "slider"; ui_min = 0.0; ui_max = 1.0; ui_label = "Wide glow"; ui_tooltip = "Weight of the large, soft glow levels."; > = 0.45;
-uniform float FlareIntensity < ui_category = "Lens flare"; ui_type = "slider"; ui_min = 0.0; ui_max = 2.0; ui_label = "Lens flare ghosts"; ui_tooltip = "Colour-fringed lens reflections from bright jutsu and the sun (mirrored through the screen centre)."; > = 0.6;
-uniform float FlareHalo < ui_category = "Lens flare"; ui_type = "slider"; ui_min = 0.0; ui_max = 2.0; ui_label = "Halo ring"; > = 0.4;
-uniform float StreakIntensity < ui_category = "Lens flare"; ui_type = "slider"; ui_min = 0.0; ui_max = 2.0; ui_label = "Anamorphic streaks"; ui_tooltip = "Horizontal light streaks from bright points (cinema / anime lens look)."; > = 0.6;
+uniform float FlareIntensity < ui_category = "Lens flare"; ui_type = "slider"; ui_min = 0.0; ui_max = 2.0; ui_label = "Lens flare ghosts"; ui_tooltip = "Colour-fringed lens reflections from bright jutsu and the sun (mirrored through the screen centre)."; > = 0.35;
+uniform float FlareHalo < ui_category = "Lens flare"; ui_type = "slider"; ui_min = 0.0; ui_max = 2.0; ui_label = "Halo ring"; > = 0.25;
+uniform float StreakIntensity < ui_category = "Lens flare"; ui_type = "slider"; ui_min = 0.0; ui_max = 2.0; ui_label = "Anamorphic streaks"; ui_tooltip = "Horizontal light streaks from bright points (cinema / anime lens look)."; > = 0.35;
 uniform float3 StreakTint < ui_category = "Lens flare"; ui_type = "color"; ui_label = "Streak tint"; > = float3(0.55, 0.75, 1.0);
 uniform float3 BloomTint < ui_category = "Bloom"; ui_type = "color"; ui_label = "Tint"; > = float3(1.0, 0.95, 0.9);
 
@@ -222,6 +222,16 @@ bool Bad(float x) { return (asuint(x) & 0x7FFFFFFF) >= 0x7F800000; }
 bool Bad3(float3 v) { return Bad(v.x) || Bad(v.y) || Bad(v.z); }
 bool Bad4(float4 v) { return Bad3(v.xyz) || Bad(v.w); }
 
+// Saturated yellow (~50 deg hue): Naruto's hair and similar flat-shaded yellows. Kept out of glow so they
+// read as paint, not light. White-hot cores and orange/blue chakra fall outside this window.
+float YellowMask(float3 g)
+{
+	float mx = max(g.r, max(g.g, g.b)), sat = mx - min(g.r, min(g.g, g.b));
+	if (sat < 1e-3 || mx != g.r && mx != g.g) return 0.0;
+	float hue = mx == g.r ? frac(((g.g - g.b) / sat) / 6.0) : ((g.b - g.r) / sat + 2.0) / 6.0;
+	return saturate(1.6 - abs(hue - 0.14) * 16.0) * smoothstep(0.35, 0.55, sat / max(mx, 1e-3));
+}
+
 float Bayer4(float2 vpos)
 {
 	int2 p = int2(vpos) & 3;
@@ -248,10 +258,11 @@ float HudRectMask(float2 uv)
 	m = max(m, RectMask(uv, float4(0.50, 0.03, 0.95, 0.31)) * s.y);
 	m = max(m, RectMask(uv, float4(0.065, 0.70, 0.215, 0.97)) * s.y);
 	m = max(m, RectMask(uv, float4(0.785, 0.70, 0.935, 0.97)) * s.y);
-	// Free roam: portrait + bar top-left, button help bottom-left.
+	// Free roam: portrait + bar top-left, button help along the bottom, minimap bottom-right.
 	float roam = s.x * (1.0 - s.y);
 	m = max(m, RectMask(uv, float4(0.06, 0.04, 0.38, 0.23)) * roam);
-	m = max(m, RectMask(uv, float4(0.0, 0.88, 0.51, 0.955)) * roam);
+	m = max(m, RectMask(uv, float4(0.0, 0.88, 0.72, 0.955)) * roam);
+	m = max(m, RectMask(uv, float4(0.79, 0.69, 0.935, 0.955)) * roam);
 	if (any(HudCustomRect.zw > HudCustomRect.xy)) m = max(m, RectMask(uv, HudCustomRect));
 	return m;
 }
@@ -699,7 +710,8 @@ float4 PS_BloomPrefilter(float4 vpos : SV_Position, float2 uv : TEXCOORD) : SV_T
 	// Additive jutsu FX render near-clipped; bright clothing (e.g. Shikamaru's teal vest) stays below this.
 	float fx = smoothstep(0.92, 0.99, mx) * smoothstep(0.45, 0.7, sat / max(mx, 1e-3)) * smoothstep(0.55, 0.7, l) * (1.0 - grass);
 	float hud = max(HudRectMask(uv), IsUiDepth(RawDepth(uv)) ? 1.0 : 0.0);
-	return float4(c * (saturate(w) + fx * FXGlow) * (1.0 - hud), 1.0);
+	float yellow = YellowMask(g);
+	return float4(c * (saturate(w) + fx * FXGlow) * (1.0 - yellow) * (1.0 - hud), 1.0);
 }
 float4 PS_BloomDown2(float4 v : SV_Position, float2 uv : TEXCOORD) : SV_Target { return float4(Down13(sB1, uv, 2.0 * PIX), 1); }
 float4 PS_BloomDown3(float4 v : SV_Position, float2 uv : TEXCOORD) : SV_Target { return float4(Down13(sB2, uv, 4.0 * PIX), 1); }
@@ -822,7 +834,7 @@ float3 Grade(float3 lin, float2 uv, float adaptMul)
 	// Emissive jutsu/chakra light (bright + strongly coloured) is exempt from darkening so it pops in moody scenes.
 	float3 g0 = ToGam(saturate(lin));
 	float gmx = max(g0.r, max(g0.g, g0.b));
-	float emissive = smoothstep(0.92, 0.99, gmx) * smoothstep(0.45, 0.7, (gmx - min(g0.r, min(g0.g, g0.b))) / max(gmx, 1e-3));
+	float emissive = smoothstep(0.92, 0.99, gmx) * smoothstep(0.45, 0.7, (gmx - min(g0.r, min(g0.g, g0.b))) / max(gmx, 1e-3)) * (1.0 - YellowMask(g0));
 	lin *= exp2((Exposure + ad.x * AdaptExposure * adaptMul) * (1.0 - emissive));
 	lin *= float3(1.0 + Temperature * 0.08, 1.0, 1.0 - Temperature * 0.08);
 
